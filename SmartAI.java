@@ -24,7 +24,7 @@ public class SmartAI implements AIModule
         this.g = this.h = this.f = 0.0;
       }
       else {
-        this.g = map.getCost(state, map.getEndPoint());
+        this.g = map.getCost(this.state, map.getEndPoint());
         this.h = 0; //getHeuristic();
         this.f = g + h;
       }
@@ -40,17 +40,8 @@ public class SmartAI implements AIModule
       else if (this.f < n.f){
         return -1;
       }
-      else {
-        // if (this.h > n.h){
-        //   return -1;
-        // }
-        // else if (this.h < n.h){
-        //   return 1;
-        // }
-        // else {
-        return 0;
-        // }
-      }
+
+      return 0;
     }
 
     public boolean equals(Object obj)
@@ -108,58 +99,57 @@ public class SmartAI implements AIModule
 
   public List<Point> createPath(TerrainMap map)
   {
-    //Node end = new Node(map.getEndPoint(), null, map);
-    // System.out.println("!!!");
-    // end.print();
     int loops = 0;
     Node start = new Node(map.getStartPoint(), null, map);
-    PriorityQueue<Node> frontier = new PriorityQueue<Node>();
+    PriorityQueue<Node> frontier = new PriorityQueue<Node>(1, new Comparator<Node>(){
+      public int compare(Node node1, Node node2)
+      {
+        return node1.compareTo(node2);
+      }
+    });
     List<Point> explored = new ArrayList<Point>();
     frontier.add(start);
+
     while (frontier.size() > 0){
-      //System.out.println();
       Node current = frontier.poll();
+
       if (explored.contains(current.state)){
         continue;
       }
       loops++;
       current.print();
       System.out.println("loop #" + loops);
-      //System.out.println(current.state.equals(map.getEndPoint()));
+
       if (current.state.equals(map.getEndPoint())){
         List<Point> path = buildPath(current);
         //Collections.reverse(path);
+
         for (int i = 0; i < path.size(); i++){
           System.out.println(path.get(i));
         }
         return path;
       }
-
       explored.add(current.state);
       Point[] n = map.getNeighbors(current.state);
+
       for (Point neighbor : n){
         Node temp = new Node(neighbor, current, map);
 
         if (!frontier.contains(temp) && !explored.contains(neighbor)){
           frontier.add(temp);
         }
-        else if (frontier.contains(temp)){
-          Node[] others = frontier.toArray(new Node[frontier.size()]);
-          Node other = findVal(others, temp);
 
-          if (temp.f == other.f){
-            if (temp.h > other.h){
-              frontier.remove(other);
-              frontier.add(temp);
-            }
-          }
-          else if (temp.f < other.f){
+        else if (frontier.contains(temp)){
+          Node[] contents = frontier.toArray(new Node[frontier.size()]);
+          Node other = findVal(contents, temp);
+          if (temp.f < other.f){
             frontier.remove(other);
             frontier.add(temp);
           }
         }
       }
     }
+
     return null;
   }
 
@@ -181,10 +171,11 @@ public class SmartAI implements AIModule
       path.add(current.state);
       current = current.parent;
     }
+    path.add(current.state);
     return path;
   }
 
-  public double getHeuristic(final Point current, TerrainMap map) //todo (later)
+  public double getHeuristic(final Point current, TerrainMap map)
   {
     double dx = Math.abs(current.x - map.getEndPoint().x);
     double dy = Math.abs(current.y - map.getEndPoint().y);
